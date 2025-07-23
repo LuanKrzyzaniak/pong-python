@@ -1,20 +1,20 @@
 import pygame
 import sys
 import random
+import math
+
+
 
 def ball_collision(ball_pos, radius, rect, velocity):
-    # Closest point from ball to rect
     closest_x = max(rect.left, min(ball_pos[0], rect.right))
     closest_y = max(rect.top, min(ball_pos[1], rect.bottom))
 
-    # Distance to that point
     distance_x = ball_pos[0] - closest_x
     distance_y = ball_pos[1] - closest_y
 
     if (distance_x**2 + distance_y**2) > (radius**2):
         return False, None
 
-    # Determine collision side more robustly
     overlap_x = min(abs(ball_pos[0] - rect.left), abs(ball_pos[0] - rect.right))
     overlap_y = min(abs(ball_pos[1] - rect.top), abs(ball_pos[1] - rect.bottom))
 
@@ -23,158 +23,240 @@ def ball_collision(ball_pos, radius, rect, velocity):
     else:
         return True, 'top' if velocity[1] > 0 else 'bottom'
 
-
-def point_scored(ball_pos, items):
-    if ball_pos[0] < screen_length / 2:
+def point_scored(b, items):
+    if b.x < screen_length / 2:
         score[1] += 1
     else:
         score[0] += 1
-    ball_pos[0] = screen_length / 2
-    ball_pos[1] = screen_height / 2
 
     for item in items[:]:
         items.remove(item)
 
-    return [0,0]
+    del balls[1:]
+    balls[0].reset()
+
+    return 
+
+
+
+class ball:
+    def __init__(self, pos, vel, radius, color):
+        self.pos = pos
+        self.vel = vel
+        self.radius = radius
+        self.color = color
+    
+        self.x = self.pos[0]
+        self.y = self.pos[1]
+
+    def move(self):
+        self.pos[0] += self.vel[0]
+        self.pos[1] += self.vel[1]
+        self.x = self.pos[0]
+        self.y = self.pos[1]
+
+    def reset(self):
+        self.pos = [screen_length/2, screen_height/2]
+        self.vel = [0,0]
+        self.x = self.pos[0]
+        self.x = self.pos[0]
+
+    def draw(self, screen):
+        pygame.draw.circle(screen, self.color, self.pos, self.radius)
+
+class player:
+    def __init__(self, pos, color, size, vel):
+        self.pos = pos
+        self.color = color
+        self.size = size
+        self.vel = vel
+
+        self.x = self.pos[0]
+        self.y = self.pos[1]
+        self.size_x = self.size[0]
+        self.size_y = self.size[1]
+
+    def move(self, keys, up_key, down_key):
+        if keys[up_key] and self.pos[1] > 10:
+            self.pos[1] -= self.vel
+        if keys[down_key] and self.pos[1] < screen_height - self.size[1] - 10:
+            self.pos[1] += self.vel
+        self.y = self.pos[1]
+
+
+    def draw(self, screen):
+        rect = pygame.Rect(self.pos[0], self.pos[1], self.size[0], self.size[1])
+        pygame.draw.rect(screen, self.color, rect)
+
+    def get_rect(self):
+        return pygame.Rect(self.pos[0], self.pos[1], self.size[0], self.size[1])
+
+
 
 # GAME DATA
-player_speed = 1.5
-ball_speed = 1
 score = [0,0]
 game_paused = True
-last_item_spawn_time = 0
-item_interval = 1000 
-items = []  
 
-# SCREEN DATA
+screen_color = (43, 44, 40)
 screen_length = 1280
 screen_height = 720
-screen_color = (43, 44, 40)
 
-# OBJECTS DATA
-p1_data = [100, screen_height/3, 50, screen_height/4]
-p1_color = (10, 147, 150)
-
-p2_data = [screen_length-100, screen_height/3, 50, screen_height/4]
-p2_color = (202,103,2)
-
-ball_pos = [screen_length/2, screen_height/2]
-ball_size = 15
-ball_color = (233,216,166)
-ball_vel = [0,0]
-
+items = []  
 item_color = (166, 233, 183)
 item_size = 30
-item_spawn_chance = 0.1
+item_spawn_chance = 0.15
+item_interval = 1000 
+last_item_spawn_time = 0
 
-# OVERLAY
 font_color = 'white'
 font_size = 60
 font_type = None
+
+
+# INSTANTIATE PLAYERS
+players = []
+player_speed = 1.5
+
+player_color = (10, 147, 150)
+player_pos = (100, screen_height/3)
+player_size = (50, screen_height/4)
+players.append(player(list(player_pos), player_color, list(player_size), player_speed))
+
+player_color = (202,103,2)
+player_pos = (screen_length-100, screen_height/3)
+player_size = (50, screen_height/4)
+players.append(player(list(player_pos), player_color, list(player_size), player_speed))
+
+# INSTANTIATE BALL
+balls = []
+ball_speed = 1
+
+ball_color = (233,216,166)
+ball_size = 15
+ball_vel = [0,0]
+ball_pos = [screen_length/2, screen_height/2]
+balls.append(ball(ball_pos, ball_vel, ball_size, ball_color))
+
+
 
 # GAME
 pygame.init()
 screen = pygame.display.set_mode((screen_length, screen_height))
 
 while True:
-    # EVENTS & KEYS
     events = pygame.event.get()
     keys = pygame.key.get_pressed()
+    current_time = pygame.time.get_ticks()
 
     for event in events:
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
 
-    # RENDERING
+    # Items
+    if current_time - last_item_spawn_time > item_interval and not game_paused:
+        left_bound = players[0].x + players[0].size_x + item_size
+        right_bound = players[1].x - item_size
+
+        if random.random() < item_spawn_chance:
+            item_x = random.randint(left_bound, right_bound)
+            item_y = random.randint(item_size, screen_height - item_size)
+            items.append(pygame.Rect(item_x - item_size, item_y - item_size, item_size*2, item_size*2))
+        last_item_spawn_time = current_time
+
+
+
+    # Rendering 
     screen.fill(screen_color)
 
-    p1 = pygame.draw.rect(screen, p1_color, p1_data)
-    p2 = pygame.draw.rect(screen, p2_color, p2_data)
-    ball = pygame.draw.circle(screen, ball_color, ball_pos, ball_size)
+    for p in players:
+        p.draw(screen)
+    for b in balls:
+        b.draw(screen)
 
     font = pygame.font.SysFont(font_type, font_size)
     text_surface = font.render(f"{score[0]} - {score[1]}", True, font_color)
     text_ret = text_surface.get_rect(center = (screen_length/2, 50))
     screen.blit(text_surface, text_ret)
 
-    # ITEMS
-    current_time = pygame.time.get_ticks()
+    for item in items:
+        pygame.draw.ellipse(screen, item_color, item)
 
-    if current_time - last_item_spawn_time > item_interval:
-        if random.random() < item_spawn_chance:
-            item_x = random.randint(item_size, screen_length - item_size)
-            item_y = random.randint(item_size, screen_height - item_size)
-            items.append(pygame.Rect(item_x - item_size, item_y - item_size, item_size*2, item_size*2))
-        last_item_spawn_time = current_time
-
-    # Draw all items
-    #for item in items:
-    #    pygame.draw.ellipse(screen, item_color, item)
-
-    # GAME START
+    # Gane start
     if game_paused and keys[pygame.K_SPACE]:
-        ball_vel = [random.choice([-1, 1]) * ball_speed, random.choice([-1, 1]) * ball_speed]
+        balls[0].vel = [random.choice([-1, 1]) * ball_speed, random.choice([-1, 1]) * ball_speed]
         game_paused = False
 
-    # PLAYER MOVEMENT
-    if keys[pygame.K_w] and p1_data[1] > 10:
-        p1_data[1] -= player_speed
-    if keys[pygame.K_s] and p1_data[1] <  screen_height - p1_data[3] - 10:
-        p1_data[1] += player_speed
-    if keys[pygame.K_UP] and p2_data[1] > 10:
-        p2_data[1] -= player_speed
-    if keys[pygame.K_DOWN] and p2_data[1] <  screen_height - p2_data[3] - 10:
-        p2_data[1] += player_speed
+    # Movement 
+    players[0].move(keys, pygame.K_w, pygame.K_s)
+    players[1].move(keys, pygame.K_UP, pygame.K_DOWN) 
 
-    # BALL MOVEMENT
-    ball_pos[0] += ball_vel[0]
-    ball_pos[1] += ball_vel[1]
+    for b in balls:
+        b.move()
 
     # COLLISION
-    p1_col, p1_side = ball_collision(ball_pos, ball_size, p1, ball_vel)
-    p2_col, p2_side = ball_collision(ball_pos, ball_size, p2, ball_vel)
-    
-    x_collision = ball_pos[0] - ball_size <= 0 or ball_pos[0] + ball_size >= screen_length
-    y_collision = ball_pos[1] - ball_size <= 0 or ball_pos[1] + ball_size >= screen_height
-    
-    x_player_collision = p1_col and p1_side in ['left', 'right'] or p2_col and p2_side in ['left', 'right']
-    y_player_collision = p1_col and p1_side in ['top', 'bottom'] or p2_col and p2_side in ['top', 'bottom']
+    for b in balls:
+        ball_pos = b.pos
+        ball_vel = b.vel
 
-  
-    if x_player_collision:
-        ball_vel[0] *= -1.05
-        if p1_col:
-            ball_pos[0] = p1.right + ball_size
-        elif p2_col:
-            ball_pos[0] = p2.left - ball_size
-    elif y_player_collision:
-        ball_vel[1] *= -1  
-        if p1_col:
-            if ball_pos[1] < p1.centery:
-                ball_pos[1] = p1.top - ball_size
-            else:
-                ball_pos[1] = p1.bottom + ball_size
-        elif p2_col:
-            if ball_pos[1] < p2.centery:
-                ball_pos[1] = p2.top - ball_size
-            else:
-                ball_pos[1] = p2.bottom + ball_size
-    elif y_collision:
-        ball_vel[1] *= -1
-    elif x_collision:
-        ball_vel = point_scored(ball_pos, items)
-        game_paused = True
+        p1_rect = players[0].get_rect()
+        p2_rect = players[1].get_rect()
 
-    for item in items[:]:
-        item_center = item.center
-        dist_x = ball_pos[0] - item_center[0]
-        dist_y = ball_pos[1] - item_center[1]
-        distance = (dist_x**2 + dist_y**2)**0.5
+        p1_col, p1_side = ball_collision(ball_pos, b.radius, p1_rect, ball_vel)
+        p2_col, p2_side = ball_collision(ball_pos, b.radius, p2_rect, ball_vel)
 
-        if distance <= ball_size + item_size:
-            items.remove(item)
-            ball_speed += 0.2
+        x_collision = ball_pos[0] - b.radius <= 0 or ball_pos[0] + b.radius >= screen_length
+        y_collision = ball_pos[1] - b.radius <= 0 or ball_pos[1] + b.radius >= screen_height
 
+        x_player_collision = (p1_col and p1_side in ['left', 'right']) or (p2_col and p2_side in ['left', 'right'])
+        y_player_collision = (p1_col and p1_side in ['top', 'bottom']) or (p2_col and p2_side in ['top', 'bottom'])
+
+        if x_player_collision:
+            ball_vel[0] *= -1.05
+            if p1_col:
+                ball_pos[0] = p1_rect.right + b.radius
+            elif p2_col:
+                ball_pos[0] = p2_rect.left - b.radius
+        elif y_player_collision:
+            ball_vel[1] *= -1  
+            if p1_col:
+                if ball_pos[1] < p1_rect.centery:
+                    ball_pos[1] = p1_rect.top - b.radius
+                else:
+                    ball_pos[1] = p1_rect.bottom + b.radius
+            elif p2_col:
+                if ball_pos[1] < p2_rect.centery:
+                    ball_pos[1] = p2_rect.top - b.radius
+                else:
+                    ball_pos[1] = p2_rect.bottom + b.radius
+        elif y_collision:
+            ball_vel[1] *= -1
+        elif x_collision:
+            point_scored(b, items)
+            game_paused = True
+
+        # Item collision
+
+        for b in balls[:]:
+            for item in items[:]:
+                item_center = item.center
+                dist_x = b.x - item_center[0]
+                dist_y = b.y - item_center[1]
+                distance = (dist_x**2 + dist_y**2)**0.5
+
+                if distance <= b.radius + item_size:
+                    items.remove(item)
+
+                    speed = math.hypot(b.vel[0], b.vel[1])
+                    current_angle = math.atan2(b.vel[1], b.vel[0])
+
+                    angle_offset = random.uniform(-0.3, 0.3)  # ~ +/- 17 degrees
+
+                    new_angle = current_angle + angle_offset
+
+                    new_vel = [speed * math.cos(new_angle), speed * math.sin(new_angle)]
+
+                    b_item = ball(b.pos.copy(), new_vel, b.radius, b.color)
+                    balls.append(b_item)
 
     pygame.display.update()
