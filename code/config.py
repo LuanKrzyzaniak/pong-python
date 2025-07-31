@@ -42,4 +42,4 @@ item_spawn_chance = 0.15
 item_interval = 1000 
 last_item_spawn_time = 0
 left_bound = p1_pos[0] + p1_size[0] + item_size + 200
-right_bound = p2_pos[0] - p2_size[0] - item_size + 200
+right_bound = p2_pos[0] - p2_size[0] - item_size - 200

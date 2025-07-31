@@ -22,10 +22,15 @@ balls.append(Ball(c.ball_pos, c.ball_vel, c.ball_size, c.ball_color))
 # Game
 pygame.init()
 screen = pygame.display.set_mode((c.screen_length, c.screen_height))
+clock = pygame.time.Clock()
+
+pygame.display.set_caption("CoolPongGame")
+icon = pygame.image.load("../assets/icon.png") 
+pygame.display.set_icon(icon)
+
 
 while True:
 
-    clock = pygame.time.Clock()
     events = pygame.event.get()
     keys = pygame.key.get_pressed()
     current_time = pygame.time.get_ticks()
@@ -44,7 +49,9 @@ while True:
                     reset_game(balls, items)
                 if event.key == pygame.K_QUOTE:
                     print(f"P1: {players[0].vel} P2: {players[0].vel} Ball: {balls[0].vel}\nPlayer Speed: {c.player_speed} Ball Speed: {c.ball_speed}\n")
-
+                if event.key == pygame.K_ESCAPE:
+                    pygame.quit()
+                    sys.exit()
     # Items
     if not c.game_paused and current_time - c.last_item_spawn_time > c.item_interval and random.random() < c.item_spawn_chance:
         i_temp = c.item_color
