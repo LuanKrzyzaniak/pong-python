@@ -7,7 +7,7 @@ A personal Pong-inspired arcade game project with (hopefully) chaotic ball physi
 
 **Very Cool Pong** is my take on a modern and quirky reinterpretation of the classic Pong game. It started as a personal side project during university to practice object-oriented programming, dive into Python game development, experiment with game physics, and explore Pygame’s capabilities.
 
-The game implements classic mechanics like speed scaling for the ball, and expands on the original concept by introducing item pickups — such as the implemented ball duplication item — to create a more chaotic and dynamic experience.
+The game implements classic mechanics like speed scaling for the ball, and expands on the original concept by introducing item pickups (like a ball duplication item) to create a more chaotic and dynamic experience.
 
 
 ## 🧠 Why I Built It
