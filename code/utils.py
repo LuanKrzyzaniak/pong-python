@@ -117,7 +117,7 @@ def show_ui(screen):
         text_ret = text_surface.get_rect(center = (c.screen_length/2, c.screen_height/2 + 200))
         screen.blit(text_surface, text_ret)
 
-        font = pygame.font.SysFont(c.font_type, c.font_size + 20)
+        font = pygame.font.SysFont(c.font_type, c.font_size + 40)
         text_surface = font.render("very cool pong", True, c.font_color)
         text_ret = text_surface.get_rect(center = (c.screen_length/2, c.screen_height/2 - 100))
         screen.blit(text_surface, text_ret)

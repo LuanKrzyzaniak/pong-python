@@ -38,6 +38,7 @@ p2_size = (50, screen_height/4)
 item_color = (166, 233, 183)
 item_font_color = (43, 44, 40)
 item_size = 30
+item_limit = 10
 item_spawn_chance = 0.15
 item_interval = 1000 
 last_item_spawn_time = 0
